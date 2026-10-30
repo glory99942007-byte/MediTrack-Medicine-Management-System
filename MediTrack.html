@@ -1,0 +1,396 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MediTrack - Medicine Inventory</title>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;background:#f4f6fb;color:#252b45}
+header{background:#392b70;color:white;padding:22px 30px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}
+header h1{font-size:25px}
+header p{font-size:13px;margin-top:5px;color:#ddd}
+.container{max-width:1200px;margin:auto;padding:25px}
+nav{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:25px}
+nav button,.btn{border:0;border-radius:8px;padding:11px 16px;background:#e8e3fa;color:#392b70;font-weight:bold;cursor:pointer}
+nav button.active,.primary{background:#6046b5;color:white}
+button:hover{opacity:.85}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:15px;margin-bottom:25px}
+.card{background:white;padding:20px;border-radius:13px;box-shadow:0 3px 12px #1820440c}
+.card small{color:#777}
+.card h2{font-size:27px;margin-top:10px;color:#392b70}
+.panel{background:white;padding:22px;border-radius:13px;margin-bottom:20px;box-shadow:0 3px 12px #1820440c}
+.panel h2{margin-bottom:17px}
+input,select{padding:11px;border:1px solid #ddd;border-radius:7px;width:100%;font-size:14px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:15px}
+.search-row{display:flex;gap:10px;margin-bottom:15px;flex-wrap:wrap}
+.search-row input{flex:1;min-width:180px}
+table{width:100%;border-collapse:collapse;min-width:650px}
+th,td{text-align:left;padding:13px;border-bottom:1px solid #eee;font-size:14px}
+th{background:#f5f2fc;color:#392b70}
+.table-wrap{overflow-x:auto}
+.action{padding:7px 10px;border:0;border-radius:6px;cursor:pointer;margin:2px}
+.edit{background:#e5efff;color:#2357a5}
+.delete{background:#ffe7e7;color:#b32d2d}
+.stock{background:#e3f7ed;color:#18734a}
+.tag{padding:5px 8px;border-radius:20px;font-size:12px;background:#e7f7ee;color:#18734a}
+.warning{background:#fff1d8;color:#a15b00}
+.hidden{display:none}
+.empty{text-align:center;padding:25px;color:#888}
+footer{text-align:center;color:#888;padding:20px;font-size:13px}
+</style>
+</head>
+
+<body>
+
+<header>
+<div>
+<h1>✚ MediTrack</h1>
+<p>Smart Medicine Inventory Management System</p>
+</div>
+<div>Inventory Dashboard</div>
+</header>
+
+<div class="container">
+
+<nav>
+<button class="active" onclick="showPage('dashboard',this)">Dashboard</button>
+<button onclick="showPage('inventory',this)">Medicine Inventory</button>
+<button onclick="showPage('alerts',this)">Expiry Alerts</button>
+<button onclick="showPage('about',this)">About</button>
+</nav>
+
+<section id="dashboard">
+<div class="stats">
+<div class="card"><small>Total Medicines</small><h2 id="total">0</h2></div>
+<div class="card"><small>Total Stock Units</small><h2 id="units">0</h2></div>
+<div class="card"><small>Low Stock Items</small><h2 id="low">0</h2></div>
+<div class="card"><small>Expiring Soon</small><h2 id="expiring">0</h2></div>
+</div>
+
+<div class="panel">
+<h2>📊 Inventory Overview</h2>
+<p id="overview">Your medicine inventory summary will appear here.</p>
+</div>
+
+<div class="panel">
+<h2>⚠️ Recent Expiry Alerts</h2>
+<div id="recentAlerts"></div>
+</div>
+</section>
+
+<section id="inventory" class="hidden">
+<div class="panel">
+<h2 id="formTitle">➕ Add New Medicine</h2>
+
+<form id="medicineForm">
+<div class="form-grid">
+<input id="medName" placeholder="Medicine Name" required>
+<input id="medCategory" placeholder="Category" required>
+<input id="medBatch" placeholder="Batch Number" required>
+<input id="medQuantity" type="number" min="0" placeholder="Quantity" required>
+<input id="medPrice" type="number" min="0" step="0.01" placeholder="Price" required>
+<input id="medExpiry" type="date" required>
+</div>
+<button class="btn primary" type="submit" id="saveBtn">Save Medicine</button>
+<button class="btn" type="button" onclick="resetForm()">Clear</button>
+</form>
+</div>
+
+<div class="panel">
+<h2>📦 Medicine Records</h2>
+<div class="search-row">
+<input id="search" placeholder="Search medicine..." oninput="renderTable()">
+<select id="filter" onchange="renderTable()">
+<option value="all">All Medicines</option>
+<option value="low">Low Stock</option>
+<option value="expired">Expired</option>
+<option value="soon">Expiring Soon</option>
+</select>
+<button class="btn primary" onclick="exportCSV()">Export CSV</button>
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Medicine</th><th>Category</th><th>Batch</th>
+<th>Quantity</th><th>Price</th><th>Expiry</th><th>Status</th><th>Actions</th>
+</tr>
+</thead>
+<tbody id="medicineTable"></tbody>
+</table>
+</div>
+</div>
+</section>
+
+<section id="alerts" class="hidden">
+<div class="panel">
+<h2>⏰ Expiry Alerts</h2>
+<div id="alertList"></div>
+</div>
+</section>
+
+<section id="about" class="hidden">
+<div class="panel">
+<h2>About MediTrack</h2>
+<p>MediTrack is a frontend medicine inventory management project developed using HTML, CSS and JavaScript.</p>
+<br>
+<p><b>Features:</b></p><br>
+<ul style="padding-left:22px;line-height:2">
+<li>Add, edit and delete medicine records</li>
+<li>Search and filter medicines</li>
+<li>Monitor low stock items</li>
+<li>Identify expired and soon-to-expire medicines</li>
+<li>Update stock quantities</li>
+<li>Export inventory as CSV</li>
+<li>Save records in browser LocalStorage</li>
+</ul>
+</div>
+</section>
+
+</div>
+
+<footer>MediTrack | Medicine Inventory Management System | Student Project</footer>
+
+<script>
+let medicines = JSON.parse(localStorage.getItem("meditrack_medicines")) || [];
+let editingId = null;
+
+function saveData(){
+    localStorage.setItem("meditrack_medicines", JSON.stringify(medicines));
+}
+
+function showPage(page, button){
+    document.querySelectorAll(".container > section").forEach(section=>{
+        section.classList.add("hidden");
+    });
+    document.getElementById(page).classList.remove("hidden");
+
+    document.querySelectorAll("nav button").forEach(btn=>{
+        btn.classList.remove("active");
+    });
+    button.classList.add("active");
+
+    updateDashboard();
+    renderTable();
+    renderAlerts();
+}
+
+document.getElementById("medicineForm").addEventListener("submit",function(event){
+    event.preventDefault();
+
+    const medicine = {
+        id: editingId ? Number(editingId) : Date.now(),
+        name: document.getElementById("medName").value.trim(),
+        category: document.getElementById("medCategory").value.trim(),
+        batch: document.getElementById("medBatch").value.trim(),
+        quantity: Number(document.getElementById("medQuantity").value),
+        price: Number(document.getElementById("medPrice").value),
+        expiry: document.getElementById("medExpiry").value
+    };
+
+    if(editingId !== null){
+        medicines = medicines.map(item =>
+            item.id === Number(editingId) ? medicine : item
+        );
+    }else{
+        medicines.push(medicine);
+    }
+
+    saveData();
+    resetForm();
+    renderTable();
+    updateDashboard();
+    alert("Medicine saved successfully!");
+});
+
+function resetForm(){
+    document.getElementById("medicineForm").reset();
+    editingId = null;
+    document.getElementById("formTitle").textContent = "➕ Add New Medicine";
+    document.getElementById("saveBtn").textContent = "Save Medicine";
+}
+
+function editMedicine(id){
+    const medicine = medicines.find(item=>item.id===id);
+    if(!medicine)return;
+
+    editingId = id;
+    document.getElementById("medName").value = medicine.name;
+    document.getElementById("medCategory").value = medicine.category;
+    document.getElementById("medBatch").value = medicine.batch;
+    document.getElementById("medQuantity").value = medicine.quantity;
+    document.getElementById("medPrice").value = medicine.price;
+    document.getElementById("medExpiry").value = medicine.expiry;
+
+    document.getElementById("formTitle").textContent = "✏️ Edit Medicine";
+    document.getElementById("saveBtn").textContent = "Update Medicine";
+
+    document.querySelectorAll("nav button")[1].click();
+}
+
+function deleteMedicine(id){
+    if(!confirm("Are you sure you want to delete this medicine?"))return;
+
+    medicines = medicines.filter(item=>item.id!==id);
+    saveData();
+    renderTable();
+    updateDashboard();
+    renderAlerts();
+}
+
+function changeStock(id){
+    const medicine = medicines.find(item=>item.id===id);
+    if(!medicine)return;
+
+    const amount = Number(prompt("Enter stock quantity to add (use a negative number to remove):"));
+    if(!Number.isFinite(amount) || amount===0)return;
+
+    if(medicine.quantity + amount < 0){
+        alert("Insufficient stock! Quantity cannot become negative.");
+        return;
+    }
+
+    medicine.quantity += amount;
+    saveData();
+    renderTable();
+    updateDashboard();
+    alert("Stock updated!");
+}
+
+function getStatus(medicine){
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    const expiry = new Date(medicine.expiry+"T00:00:00");
+    const days = Math.ceil((expiry-today)/86400000);
+
+    if(days<0)return {label:"Expired",className:"warning"};
+    if(days<=30)return {label:"Expiring Soon",className:"warning"};
+    if(medicine.quantity<=10)return {label:"Low Stock",className:"warning"};
+    return {label:"Available",className:""};
+}
+
+function renderTable(){
+    const search = document.getElementById("search").value.toLowerCase();
+    const filter = document.getElementById("filter").value;
+
+    const filtered = medicines.filter(medicine=>{
+        const status = getStatus(medicine).label;
+        const matches = medicine.name.toLowerCase().includes(search) ||
+                        medicine.category.toLowerCase().includes(search) ||
+                        medicine.batch.toLowerCase().includes(search);
+
+        const filterMatch =
+            filter==="all" ||
+            (filter==="low" && medicine.quantity<=10) ||
+            (filter==="expired" && status==="Expired") ||
+            (filter==="soon" && status==="Expiring Soon");
+
+        return matches && filterMatch;
+    });
+
+    const tbody = document.getElementById("medicineTable");
+
+    if(filtered.length===0){
+        tbody.innerHTML='<tr><td colspan="8" class="empty">No medicines found.</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = filtered.map(medicine=>{
+        const status = getStatus(medicine);
+        return `
+        <tr>
+            <td><b>${escapeHTML(medicine.name)}</b></td>
+            <td>${escapeHTML(medicine.category)}</td>
+            <td>${escapeHTML(medicine.batch)}</td>
+            <td>${medicine.quantity}</td>
+            <td>₹${medicine.price.toFixed(2)}</td>
+            <td>${medicine.expiry}</td>
+            <td><span class="tag ${status.className}">${status.label}</span></td>
+            <td>
+                <button class="action edit" onclick="editMedicine(${medicine.id})">Edit</button>
+                <button class="action stock" onclick="changeStock(${medicine.id})">Stock</button>
+                <button class="action delete" onclick="deleteMedicine(${medicine.id})">Delete</button>
+            </td>
+        </tr>`;
+    }).join("");
+}
+
+function escapeHTML(value){
+    return String(value).replace(/[&<>"']/g,char=>({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[char]));
+}
+
+function updateDashboard(){
+    document.getElementById("total").textContent = medicines.length;
+    document.getElementById("units").textContent =
+        medicines.reduce((sum,item)=>sum+item.quantity,0);
+    document.getElementById("low").textContent =
+        medicines.filter(item=>item.quantity<=10).length;
+
+    const soon = medicines.filter(item=>{
+        const status = getStatus(item).label;
+        return status==="Expiring Soon" || status==="Expired";
+    });
+
+    document.getElementById("expiring").textContent = soon.length;
+    document.getElementById("overview").textContent =
+        `You currently have ${medicines.length} medicine records and ${
+        medicines.reduce((sum,item)=>sum+item.quantity,0)
+        } total stock units.`;
+
+    document.getElementById("recentAlerts").innerHTML =
+        soon.length ? soon.slice(0,5).map(item=>
+            `<p style="padding:8px 0">⚠️ ${escapeHTML(item.name)} — ${getStatus(item).label}</p>`
+        ).join("") : "<p>No expiry alerts at the moment.</p>";
+}
+
+function renderAlerts(){
+    const alerts = medicines.filter(item=>{
+        const status = getStatus(item).label;
+        return status==="Expired" || status==="Expiring Soon";
+    });
+
+    document.getElementById("alertList").innerHTML =
+        alerts.length ? alerts.map(item=>
+            `<p style="padding:12px;border-bottom:1px solid #eee">
+            ⚠️ <b>${escapeHTML(item.name)}</b> — ${getStatus(item).label}
+            | Expiry: ${item.expiry}</p>`
+        ).join("") : '<p class="empty">No expiry alerts.</p>';
+}
+
+function exportCSV(){
+    if(medicines.length===0){
+        alert("No medicine records to export.");
+        return;
+    }
+
+    const rows = [
+        ["Name","Category","Batch","Quantity","Price","Expiry"],
+        ...medicines.map(item=>[
+            item.name,item.category,item.batch,item.quantity,item.price,item.expiry
+        ])
+    ];
+
+    const csv = rows.map(row=>
+        row.map(value=>'"'+String(value).replace(/"/g,'""')+'"').join(",")
+    ).join("\n");
+
+    const blob = new Blob([csv],{type:"text/csv;charset=utf-8;"});
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = "MediTrack-Inventory.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+}
+
+updateDashboard();
+renderTable();
+renderAlerts();
+</script>
+
+</body>
+</html>
